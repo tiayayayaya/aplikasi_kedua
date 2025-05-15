@@ -2,6 +2,8 @@ import 'package:aplikasi_kedua/Home/homepage.dart';
 import 'package:aplikasi_kedua/lupapw.dart';
 import 'package:aplikasi_kedua/register.dart';
 import 'package:aplikasi_kedua/themes/colors_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:aplikasi_kedua/auth_service.dart'; 
@@ -27,15 +29,37 @@ class _Login2State extends State<Login2> {
           email: _emailController.text,
           password: _passwordController.text,
         );
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => homepage()));
+
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+          final role = userDoc.data()?['role'];
+          if (role == 'seller') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => homepage()),
+            );
+          } else {
+            await FirebaseAuth.instance.signOut();
+            setState(() {
+              _errorMessage =
+                  'Akun ini bukan akun seller. Silakan login dengan akun seller.';
+            });
+          }
+        }
       } catch (e) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage =
+              'Maaf, email atau kata sandi salah atau mungkin akun anda belum terdaftar.';
         });
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
